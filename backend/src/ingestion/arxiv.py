@@ -90,7 +90,7 @@ def parse_arxiv_url(raw: str) -> ArxivId:
 # Network: Metadata + Content fetch
 API_URL = "https://export.arxiv.org/api/query"
 _ATOM = "{http://www.w3.org/2005/Atom}"
-RETRY_STATUS = {429, 500, 502, 503, 504}
+_RETRY_STATUS = {429, 500, 502, 503, 504}
 
 class PaperNotFound(Exception):
     """arXiv has no such paper."""
