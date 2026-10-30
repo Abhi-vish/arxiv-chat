@@ -17,4 +17,5 @@ dependencies = [
     "pytest>=9.2.0",
     "pytest-asyncio>=1.2.0",
     "respx>=0.23.1",
+    "streamlit>=1.66.1",
 ]
