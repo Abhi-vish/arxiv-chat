@@ -48,7 +48,7 @@ class ArxivId:
     
 def parse_arxiv_url(raw: str) -> ArxivId:
     
-    if not raw or raw.strip():
+    if not raw or not raw.strip():
         raise InvalidArxivUrl("Input is empty or whitespace")
     
     text = raw.strip()
@@ -56,7 +56,19 @@ def parse_arxiv_url(raw: str) -> ArxivId:
     if re.match(r"(?i)^arxiv:", text):
         candidate = text[len("arxiv:") :]
         
-    elif "://" in text.lower().startswith(("arxiv.org","www.arxiv.org")):
+    elif text.lower().startswith(
+        (
+            "http://arxiv.org",
+            "https://arxiv.org",
+            "http://www.arxiv.org",
+            "https://www.arxiv.org",
+            "http://export.arxiv.org",
+            "https://export.arxiv.org",
+            "arxiv.org",
+            "www.arxiv.org",
+            "export.arxiv.org",
+        )
+    ):
         if "://" not in text:
             text = "https://" + text
             
