@@ -1,9 +1,5 @@
-"""Throwaway test UI for ingestion + QA. Delete or move to scripts/ later.
+"""Streamlit UI for end-to-end arXiv ingestion and Gemini Q&A testing."""
 
-Run from backend/ (needs .env there):
-    streamlit run streamlit_app.py
-Watch the terminal: logs show ingestion steps and cache_write / cache_read.
-"""
 from __future__ import annotations
 
 import asyncio
