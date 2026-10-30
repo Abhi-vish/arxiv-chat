@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
     
     gemini_api_key: SecretStr
-    llm_model: str = "gemini-pro-1"
+    llm_model: str = "gemini-2.5-flash"
     llm_max_tokens: int = 2048
     llm_timeout_s: float = 60.0
     llm_retries: int = 3
