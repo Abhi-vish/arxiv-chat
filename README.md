@@ -129,7 +129,3 @@ Chat events: `token {"text"}` (many), then `done {}` or `error {"message"}`. The
 - **Paper text is untrusted.** It is wrapped in tags with escaping, and the prompt tells the model to ignore instructions found inside the paper.
 - **Errors are user-safe.** Upstream details go to logs, never to API responses.
 - **One shared arXiv client** keeps total traffic under arXiv's rate limit (about one request per 3 seconds).
-
-## License
-
-Add a license (for example MIT) before publishing.
