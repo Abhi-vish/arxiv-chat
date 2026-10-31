@@ -19,7 +19,9 @@ class Settings(BaseSettings):
     arxiv_user_agent: str = "arxiv-qa/0.1 (contact: abhishek@example.com)"
     
     max_history_turns: int = 10
-    max_questions_chars: int = 2000
+    cors_origins: list[str] = ["http://localhost:3000"]  # env: JSON list
+    ingest_rate_per_min: int = 5     # per IP
+    chat_rate_per_min: int = 20      # per IP
     
 @lru_cache
 def get_settings() -> Settings:
