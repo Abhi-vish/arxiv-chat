@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Chat } from './components/Chat'
 import { Landing } from './components/Landing'
 import { PaperView } from './components/PaperView'
@@ -8,6 +8,15 @@ import { clipSelection, type Selection } from './selection'
 export default function App() {
   const { state, submit, reset } = usePaper()
   const [selection, setSelection] = useState<Selection | null>(null)
+  const [paperWidth, setPaperWidth] = useState(60)
+  const splitRef = useRef<HTMLDivElement>(null)
+
+  const resizePanels = (clientX: number) => {
+    const bounds = splitRef.current?.getBoundingClientRect()
+    if (!bounds) return
+    const nextWidth = ((clientX - bounds.left) / bounds.width) * 100
+    setPaperWidth(Math.min(80, Math.max(35, nextWidth)))
+  }
 
   if (state.phase !== 'ready') return <Landing state={state} onSubmit={submit} />
 
@@ -36,11 +45,39 @@ export default function App() {
         </button>
       </header>
 
-      <div className="flex min-h-0 flex-1">
-        <main className="h-full w-[60%] min-w-0">
+      <div ref={splitRef} className="flex min-h-0 flex-1">
+        <main className="h-full min-w-0" style={{ width: `${paperWidth}%` }}>
           <PaperView markdown={markdown} onAsk={(t) => setSelection(clipSelection(t))} />
         </main>
-        <aside className="h-full w-[40%] min-w-0 border-l border-slate-200">
+        <div
+          className="group relative z-10 h-full w-1 shrink-0 cursor-col-resize border-l border-slate-200 bg-white hover:bg-indigo-100"
+          role="separator"
+          aria-label="Resize paper and chat panels"
+          aria-orientation="vertical"
+          aria-valuemin={35}
+          aria-valuemax={80}
+          aria-valuenow={paperWidth}
+          tabIndex={0}
+          onPointerDown={(event) => {
+            event.currentTarget.setPointerCapture(event.pointerId)
+            resizePanels(event.clientX)
+          }}
+          onPointerMove={(event) => {
+            if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+              resizePanels(event.clientX)
+            }
+          }}
+          onKeyDown={(event) => {
+            if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+              event.preventDefault()
+              const delta = event.key === 'ArrowLeft' ? -2 : 2
+              setPaperWidth((width) => Math.min(80, Math.max(35, width + delta)))
+            }
+          }}
+        >
+          <div className="absolute inset-y-1/2 -left-1 h-10 w-2 -translate-y-1/2 rounded-full bg-slate-300 opacity-0 transition-opacity group-hover:opacity-100 group-focus:opacity-100" />
+        </div>
+        <aside className="h-full min-w-0 flex-1">
           <Chat
             key={paper.cache_key}
             cacheKey={paper.cache_key}
