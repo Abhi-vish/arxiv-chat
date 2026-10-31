@@ -24,7 +24,8 @@ from .ingestion.pipeline import IngestionPipeline
 from .llm import LLMClient, LLMError
 from .qa.base import AnswerStrategy, PaperDoc, Turn
 from .qa.full_context import FullContextStrategy
-from .schemas import ChatRequest, PaperStatus, SubmitRequest
+from .qa.prompts import build_user_message
+from .schemas import ChatRequest, PaperContent, PaperStatus, SubmitRequest
 from .store import Store
 
 log = logging.getLogger(__name__)
@@ -191,6 +192,18 @@ def create_app(container: Container | None = None, settings: Settings | None = N
             raise HTTPException(404, "Paper not found. Submit it first.")
         return PaperStatus.from_record(rec)
 
+    @app.get("/papers/{cache_key}/content", response_model=PaperContent)
+    async def paper_content(cache_key: str, c: Container = Depends(get_container)) -> PaperContent:
+        rec = await c.store.get(cache_key)
+        if rec is None:
+            raise HTTPException(404, "Paper not found. Submit it first.")
+        if rec.status != "ready":
+            raise HTTPException(409, f"Paper is not ready ({rec.status}).")
+        markdown = await c.store.get_markdown(cache_key)
+        if markdown is None:
+            raise HTTPException(409, "Paper content is unavailable.")
+        return PaperContent(cache_key=cache_key, markdown=markdown)
+
     @app.post("/papers/{cache_key}/chat")
     async def chat(
         cache_key: str,
@@ -212,7 +225,8 @@ def create_app(container: Container | None = None, settings: Settings | None = N
 
         paper = PaperDoc(rec.cache_key, rec.title, rec.authors, rec.abstract, markdown)
         history = [Turn(t.role, t.content) for t in body.history]
-        stream = c.strategy.answer([paper], body.question, history)
+        question = build_user_message(body.question, body.selection)
+        stream = c.strategy.answer([paper], question, history)
         return StreamingResponse(
             _sse(stream),
             media_type="text/event-stream",

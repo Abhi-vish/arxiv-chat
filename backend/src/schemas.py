@@ -9,7 +9,12 @@ from .store import PaperRecord
 MAX_QUESTION_CHARS=2000
 MAX_HISTORY_TURNS=50
 MAX_TURN_CHARS=20_000
+MAX_SELECTION_CHARS = 4000
 
+
+class PaperContent(BaseModel):
+    cache_key: str
+    markdown: str
 
 class SubmitRequest(BaseModel):
     url: str = Field(min_length=1, max_length=300)
@@ -47,7 +52,13 @@ class HistoryTurn(BaseModel):
 class ChatRequest(BaseModel):
     question: str = Field(min_length=1, max_length=MAX_QUESTION_CHARS)
     history: list[HistoryTurn] = Field(default_factory=list, max_length=MAX_HISTORY_TURNS)
+    selection: str | None = Field(default=None, max_length=MAX_SELECTION_CHARS)
 
+    @field_validator("selection")
+    @classmethod
+    def _blank_selection(cls, v: str | None) -> str | None:
+        return (v.strip() or None) if v else None
+    
     @field_validator("question")
     @classmethod
     def _not_blank(cls, v: str) -> str:
