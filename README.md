@@ -2,8 +2,6 @@
 
 Paste an arXiv link, read the paper on the left, and chat with it on the right. Highlight any passage to ask about exactly that text.
 
-![App screenshot](docs/screenshot.png)
-
 ## Features
 
 - **Paste any arXiv link.** Accepts `/abs/`, `/pdf/`, `/html/`, versioned IDs (`v2`), bare IDs, and old-style IDs like `hep-th/9901001`.
