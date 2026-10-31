@@ -54,7 +54,7 @@ async def test_ready_never_reclaimed_even_if_old(tmp_path):
     t = [0.0]
     store = Store(tmp_path / "t.db", clock=lambda: t[0])
     await store.claim(META)
-    await store.mark_ready(KEY, "# md", "html")
+    await store.mark_ready(KEY, "# md", "html", 10)
     t[0] += 10**9
     assert await store.claim(META, stale_after=1) is False
 
@@ -63,7 +63,7 @@ async def test_ready_never_reclaimed_even_if_old(tmp_path):
 async def test_markdown_only_when_ready(store):
     await store.claim(META)
     assert await store.get_markdown(KEY) is None
-    await store.mark_ready(KEY, "# hello", "pdf")
+    await store.mark_ready(KEY, "# hello", "pdf", 7)
     assert await store.get_markdown(KEY) == "# hello"
     assert (await store.get(KEY)).source_kind == "pdf"
 
@@ -71,3 +71,29 @@ async def test_markdown_only_when_ready(store):
 @pytest.mark.asyncio
 async def test_get_missing(store):
     assert await store.get("nope") is None
+    
+@pytest.mark.asyncio
+async def test_token_count_roundtrip(store):
+    await store.claim(META)
+    assert (await store.get(KEY)).token_count is None
+    await store.mark_ready(KEY, "# md", "html", 1234)
+    assert (await store.get(KEY)).token_count == 1234
+
+
+@pytest.mark.asyncio
+async def test_migrates_db_created_before_token_count(tmp_path):
+    import sqlite3
+    path = tmp_path / "old.db"
+    conn = sqlite3.connect(path)
+    conn.execute(
+        "CREATE TABLE papers (cache_key TEXT PRIMARY KEY, arxiv_id TEXT NOT NULL, "
+        "version INTEGER, title TEXT NOT NULL, authors TEXT NOT NULL, "
+        "abstract TEXT NOT NULL, status TEXT NOT NULL, error TEXT, source_kind TEXT, "
+        "markdown TEXT, created_at REAL NOT NULL, updated_at REAL NOT NULL)"
+    )
+    conn.commit()
+    conn.close()
+    store = Store(path)                    # must add the column
+    assert await store.claim(META) is True
+    await store.mark_ready(KEY, "# md", "html", 5)
+    assert (await store.get(KEY)).token_count == 5

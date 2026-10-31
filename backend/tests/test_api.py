@@ -27,10 +27,14 @@ class FakeStrategy:
 
 @asynccontextmanager
 async def api(tmp_path, *, client=None, strategy=None, **settings):
+    async def count(_text: str) -> int:
+        return 1000
     store = Store(tmp_path / "t.db")
     fake_client = client or FakeClient()
     strategy = strategy or FakeStrategy()
-    container = Container(store, IngestionPipeline(fake_client, store, parse=ok_parse), strategy)
+    container = Container(
+        store, IngestionPipeline(fake_client, store, parse=ok_parse, count_tokens=count), strategy
+    )
     s = Settings(gemini_api_key="sk-test", _env_file=None, **settings)
     app = create_app(container, s)
     transport = httpx.ASGITransport(app=app)
@@ -72,7 +76,8 @@ async def test_submit_then_poll_then_cache_hit(tmp_path):
         # background task finished by the time the response completed
         polled = await http.get(f"/papers/{KEY}")
         assert polled.json()["status"] == "ready" and polled.json()["source_kind"] == "html"
-
+        assert polled.json()["token_count"] == 1000
+        
         again = await http.post("/papers", json={"url": URL})
         assert again.status_code == 200 and again.json()["status"] == "ready"
         assert client.content_calls == 1

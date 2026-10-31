@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS papers (
     error TEXT,
     source_kind TEXT,
     markdown TEXT,
+    token_count INTEGER,
     created_at REAL NOT NULL,
     updated_at REAL NOT NULL
 );
@@ -32,7 +33,7 @@ CREATE TABLE IF NOT EXISTS papers (
 
 _RECORD_COLS = (
     "cache_key, arxiv_id, version, title, authors, abstract, "
-    "status, error, source_kind, updated_at"
+    "status, error, source_kind, token_count, updated_at"
 )
 
 @dataclass(frozen=True)
@@ -45,6 +46,7 @@ class PaperRecord:
     status: status
     error: str | None
     source_kind: str | None
+    token_count: int | None
     updated_at: float
     
 def _to_record(row: sqlite3.Row) -> PaperRecord:
@@ -57,6 +59,7 @@ def _to_record(row: sqlite3.Row) -> PaperRecord:
         status=row["status"],
         error=row["error"],
         source_kind=row["source_kind"],
+        token_count=row["token_count"],
         updated_at=row["updated_at"],
     )
     
@@ -71,6 +74,10 @@ class Store:
         try:
             conn.execute("PRAGMA journal_mode=WAL")
             conn.executescript(_SCHEMA)
+            # Check if the token_count column exists
+            cols = {r[1] for r in conn.execute("PRAGMA table_info(papers)")}
+            if "token_count" not in cols:  # DB created before token counting
+                conn.execute("ALTER TABLE papers ADD COLUMN token_count INTEGER")
             conn.commit()
         finally:
             conn.close()
@@ -146,12 +153,12 @@ class Store:
             (status, now, cache_key),
         ))
 
-    async def mark_ready(self, cache_key: str, markdown: str, source_kind: str) -> None:
+    async def mark_ready(self, cache_key: str, markdown: str, source_kind: str, token_count:int) -> None:
         now = self._clock()
         await self._run(lambda c: c.execute(
             "UPDATE papers SET status='ready', error=NULL, markdown=?, source_kind=?, "
-            "updated_at=? WHERE cache_key=?",
-            (markdown, source_kind, now, cache_key),
+            "token_count=?, updated_at=? WHERE cache_key=?",
+            (markdown, source_kind, token_count,now, cache_key),
         ))
 
     async def mark_failed(self, cache_key: str, error: str) -> None:

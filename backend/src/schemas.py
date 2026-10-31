@@ -23,6 +23,7 @@ class PaperStatus(BaseModel):
     status: Literal["queued", "fetching", "parsing", "ready", "failed"]
     error: str | None = None
     source_kind: str | None = None
+    token_count: int | None = None
 
     @classmethod
     def from_record(cls, r: PaperRecord) -> "PaperStatus":
@@ -34,6 +35,7 @@ class PaperStatus(BaseModel):
             status=r.status,
             error=r.error,
             source_kind=r.source_kind,
+            token_count=r.token_count,
         )
 
 

@@ -30,7 +30,10 @@ async def ingest(url: str, on_status: Callable[[str], None]) -> tuple[PaperDoc |
     s = get_settings()
     store = Store(s.db_path)
     async with ArxivClient(user_agent=s.arxiv_user_agent) as client:
-        pipeline = IngestionPipeline(client, store)
+        llm = LLMClient(api_key=s.gemini_api_key.get_secret_value(),
+                        model=s.llm_model, timeout_s=s.llm_timeout_s)
+        pipeline = IngestionPipeline(client, store, count_tokens=llm.count_tokens,
+                                     max_tokens=s.max_paper_tokens)
         sub = await pipeline.submit(url)
         key = sub.record.cache_key
         task = asyncio.create_task(pipeline.run(key)) if sub.started else None

@@ -13,6 +13,7 @@ from backend.src.ingestion.arxiv import (
 from backend.src.ingestion.parser import ParsedPaper, ParseFailed
 from backend.src.ingestion.pipeline import IngestionPipeline
 from backend.src.store import Store
+from backend.src.llm import LLMError
 
 URL = "https://arxiv.org/abs/2401.12345"
 META = PaperMetadata(ArxivId("2401.12345", 2), "T", ["A"], "Abs")
@@ -54,9 +55,23 @@ def store(tmp_path):
     return Store(tmp_path / "t.db")
 
 
-def make(store, client=None, parse=ok_parse, **kw):
+def make_counter(n=1000, exc=None):
+    seen: list[str] = []
+
+    async def count(text: str) -> int:
+        seen.append(text)
+        if exc:
+            raise exc
+        return n
+
+    count.seen = seen  # type: ignore[attr-defined]
+    return count
+
+
+def make(store, client=None, parse=ok_parse, count=None, **kw):
     client = client or FakeClient(store=store)
-    return IngestionPipeline(client, store, parse=parse, **kw), client
+    count = count or make_counter()
+    return IngestionPipeline(client, store, parse=parse, count_tokens=count, **kw), client
 
 
 @pytest.mark.asyncio
@@ -161,3 +176,54 @@ async def test_not_found_propagates_and_stores_nothing(store):
 async def test_run_unknown_key_is_noop(store):
     p, _ = make(store)
     await p.run("nope")
+
+@pytest.mark.asyncio
+async def test_token_count_stored_and_counter_sees_markdown(store):
+    count = make_counter(4321)
+    p, _ = make(store, count=count)
+    await p.submit(URL)
+    await p.run(KEY)
+    assert (await store.get(KEY)).token_count == 4321
+    assert count.seen == [await store.get_markdown(KEY)]
+
+
+@pytest.mark.asyncio
+async def test_over_token_cap_fails_without_storing(store):
+    p, _ = make(store, count=make_counter(200_000), max_tokens=150_000)
+    await p.submit(URL)
+    await p.run(KEY)
+    rec = await store.get(KEY)
+    assert rec.status == "failed" and "too large" in rec.error
+    assert rec.token_count is None and await store.get_markdown(KEY) is None
+
+
+@pytest.mark.asyncio
+async def test_exactly_at_cap_is_allowed(store):
+    p, _ = make(store, count=make_counter(150_000), max_tokens=150_000)
+    await p.submit(URL)
+    await p.run(KEY)
+    assert (await store.get(KEY)).status == "ready"
+
+
+@pytest.mark.asyncio
+async def test_char_guard_skips_counter_call(store):
+    count = make_counter()
+    p, _ = make(store, count=count, max_chars=10)
+    await p.submit(URL)
+    await p.run(KEY)
+    assert (await store.get(KEY)).status == "failed"
+    assert count.seen == []
+
+
+@pytest.mark.asyncio
+async def test_counter_failure_is_retryable(store):
+    p, _ = make(store, count=make_counter(exc=LLMError("upstream detail")))
+    await p.submit(URL)
+    await p.run(KEY)
+    rec = await store.get(KEY)
+    assert rec.status == "failed" and "try again" in rec.error and "upstream" not in rec.error
+
+    p2, _ = make(store)
+    assert (await p2.submit(URL)).started is True
+    await p2.run(KEY)
+    assert (await store.get(KEY)).status == "ready"

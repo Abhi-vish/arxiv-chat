@@ -23,6 +23,8 @@ class Settings(BaseSettings):
     ingest_rate_per_min: int = 5     # per IP
     chat_rate_per_min: int = 20      # per IP
     
+    max_paper_tokens: int = 150_000
+    
 @lru_cache
 def get_settings() -> Settings:
     return Settings()

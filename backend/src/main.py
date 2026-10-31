@@ -43,7 +43,6 @@ class Container:
 def build_container(s: Settings) -> Container:
     store = Store(s.db_path)
     client = ArxivClient(user_agent=s.arxiv_user_agent)  # one client => one rate limiter
-    pipeline = IngestionPipeline(client, store)
     llm = LLMClient(
         api_key=s.gemini_api_key.get_secret_value(),
         model=s.llm_model,
@@ -51,6 +50,7 @@ def build_container(s: Settings) -> Container:
         timeout_s=s.llm_timeout_s,
         max_retries=s.llm_retries,
     )
+    pipeline = IngestionPipeline(client, store, count_tokens=llm.count_tokens, max_tokens=s.max_paper_tokens)
     strategy = FullContextStrategy(llm, max_history_turns=s.max_history_turns)
     return Container(store, pipeline, strategy, close=client.aclose)
 
