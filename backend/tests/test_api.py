@@ -223,3 +223,31 @@ def test_limiter_window_slides():
     assert rl.check("b") is None
     t[0] = 61
     assert rl.check("a") is None
+    
+@pytest.mark.asyncio
+async def test_content_endpoint(tmp_path):
+    async with api(tmp_path) as (http, c, *_):
+        assert (await http.get(f"/papers/{KEY}/content")).status_code == 404
+        await c.store.claim(META)
+        assert (await http.get(f"/papers/{KEY}/content")).status_code == 409
+        await c.store.mark_ready(KEY, "# md", "html", 5)
+        r = await http.get(f"/papers/{KEY}/content")
+        assert r.status_code == 200 and r.json() == {"cache_key": KEY, "markdown": "# md"}
+
+
+@pytest.mark.asyncio
+async def test_chat_selection_wrapped_and_validated(tmp_path):
+    async with api(tmp_path) as (http, _, _c, strategy):
+        key = await ready_paper(http)
+        url = f"/papers/{key}/chat"
+
+        r = await http.post(url, json={"question": "Why?", "selection": "  the passage  "})
+        assert r.status_code == 200
+        q = strategy.calls[0][1]
+        assert "<selected_passage>\nthe passage\n</selected_passage>" in q and q.endswith("Why?")
+
+        r = await http.post(url, json={"question": "hi", "selection": "   "})
+        assert r.status_code == 200 and strategy.calls[1][1] == "hi"   # blank => ignored
+
+        r = await http.post(url, json={"question": "hi", "selection": "x" * 4001})
+        assert r.status_code == 422
