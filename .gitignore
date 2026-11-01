@@ -1,0 +1,36 @@
+# Environment and secrets
+.env
+**/.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+build/
+dist/
+wheels/
+.pytest_cache/
+
+# Node
+node_modules/
+frontend/dist/
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# Application data
+backend/data/
+*.db
+
+# Logs
+*.log
+logs/
+
+# Editors and OS files
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+*.suo
+*.sw?
