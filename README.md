@@ -89,6 +89,16 @@ npm run dev                 # http://localhost:5173
 
 The dev server proxies `/api` to `localhost:8000`, so no CORS setup is needed in development.
 
+### Docker
+
+Create `backend/.env` with your `GEMINI_API_KEY`, then run:
+
+```bash
+docker compose up --build
+```
+
+Open the frontend at http://localhost:5173.
+
 ### Tests
 
 ```bash
