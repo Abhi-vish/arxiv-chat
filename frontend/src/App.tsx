@@ -46,11 +46,14 @@ export default function App() {
       </header>
 
       <div ref={splitRef} className="flex min-h-0 flex-1">
-        <main className="h-full min-w-0" style={{ width: `${paperWidth}%` }}>
+        <main
+          className="hidden h-full min-w-0 md:block"
+          style={{ width: `${paperWidth}%` }}
+        >
           <PaperView markdown={markdown} onAsk={(t) => setSelection(clipSelection(t))} />
         </main>
         <div
-          className="group relative z-10 h-full w-1 shrink-0 cursor-col-resize border-l border-slate-200 bg-white hover:bg-indigo-100"
+          className="group relative z-10 hidden h-full w-1 shrink-0 cursor-col-resize border-l border-slate-200 bg-white hover:bg-indigo-100 md:block"
           role="separator"
           aria-label="Resize paper and chat panels"
           aria-orientation="vertical"
