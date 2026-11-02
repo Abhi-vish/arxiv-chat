@@ -24,18 +24,26 @@ export default function App() {
 
   return (
     <div className="flex h-dvh flex-col bg-white text-slate-900">
-      <header className="flex items-center gap-3 border-b border-slate-200 px-4 py-2">
-        <h1 className="min-w-0 flex-1 truncate text-sm font-semibold">{paper.title}</h1>
+      <header className="flex shrink-0 items-center gap-2 border-b border-slate-200 bg-white/95 px-3 py-2.5 shadow-sm backdrop-blur supports-[padding:max(0px)]:pt-[max(0.625rem,env(safe-area-inset-top))] sm:gap-3 sm:px-4 sm:py-2">
+        <div className="flex min-w-0 flex-1 items-center gap-2.5">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-xs font-bold text-white shadow-sm sm:h-7 sm:w-7 sm:rounded-lg">
+            ar
+          </div>
+          <div className="min-w-0">
+            <h1 className="truncate text-sm font-semibold leading-5 text-slate-900">{paper.title}</h1>
+            <p className="text-[11px] leading-4 text-slate-500 sm:hidden">arXiv paper</p>
+          </div>
+        </div>
         <a
           href={`https://arxiv.org/abs/${paper.arxiv_id}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-xs text-slate-500 hover:text-slate-800"
+          className="max-w-[7rem] truncate rounded-md px-1.5 py-1 text-[11px] font-medium text-slate-500 transition-colors hover:bg-slate-50 hover:text-indigo-700 sm:max-w-none sm:text-xs"
         >
           {paper.arxiv_id}
         </a>
         <button
-          className="rounded-md border border-slate-300 px-2 py-1 text-xs hover:bg-slate-50"
+          className="shrink-0 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 shadow-sm transition-colors hover:border-slate-300 hover:bg-slate-50 active:bg-slate-100 sm:rounded-md sm:px-2 sm:py-1"
           onClick={() => {
             setSelection(null)
             reset()
