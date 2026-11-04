@@ -2,14 +2,23 @@ import { useEffect, useRef, useState } from 'react'
 import { useChat, type ChatMessage } from '../hooks'
 import { MAX_SELECTION_CHARS, type Selection } from '../selection'
 import { Markdown } from './Markdown'
+import type { PaperStatus } from '../api'
 
 interface Props {
   cacheKey: string
+  paper: PaperStatus
   selection: Selection | null
   onClearSelection: () => void
 }
 
-export function Chat({ cacheKey, selection, onClearSelection }: Props) {
+const SUGGESTIONS = [
+  'Summarize this paper',
+  'Explain the methodology',
+  'What are the key findings?',
+  'What are the limitations?',
+]
+
+export function Chat({ cacheKey, paper, selection, onClearSelection }: Props) {
   const { messages, streaming, send, stop, clear } = useChat(cacheKey)
   const [input, setInput] = useState('')
   const listRef = useRef<HTMLDivElement>(null)
@@ -62,6 +71,21 @@ export function Chat({ cacheKey, selection, onClearSelection }: Props) {
               <p className="mt-2 text-sm leading-6 text-slate-500">
                 Ask a question or highlight text in the paper to get a focused explanation.
               </p>
+              <div className="mt-5 flex flex-wrap justify-center gap-2">
+                {SUGGESTIONS.map((question) => (
+                  <button
+                    key={question}
+                    disabled={streaming}
+                    className="rounded-full border border-indigo-100 bg-indigo-50 px-3 py-1.5 text-xs font-medium text-indigo-700 transition-colors hover:border-indigo-200 hover:bg-indigo-100 disabled:cursor-not-allowed disabled:opacity-50"
+                    onClick={() => {
+                      void send(question)
+                      stickRef.current = true
+                    }}
+                  >
+                    {question}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         ) : (
@@ -72,6 +96,26 @@ export function Chat({ cacheKey, selection, onClearSelection }: Props) {
       </div>
 
       <div className="border-t border-slate-200 bg-slate-50/80 p-3">
+        <details className="mb-3 rounded-xl border border-slate-200 bg-white">
+          <summary className="cursor-pointer list-none px-3 py-2 text-xs font-medium text-slate-600">
+            Paper information
+          </summary>
+          <div className="space-y-2 border-t border-slate-100 px-3 pb-3 pt-2 text-xs text-slate-600">
+            <p className="font-medium text-slate-800">{paper.title}</p>
+            <p>
+              <span className="font-medium text-slate-500">Authors: </span>
+              {paper.authors.length ? paper.authors.join(', ') : 'Not available'}
+            </p>
+            <a
+              href={`https://arxiv.org/abs/${paper.arxiv_id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex font-medium text-indigo-600 hover:text-indigo-800"
+            >
+              Open on arXiv
+            </a>
+          </div>
+        </details>
         {selection && (
           <div className="mb-2 rounded-md border-l-4 border-indigo-500 bg-indigo-50 p-2 text-xs text-slate-700">
             <div className="flex gap-2">
@@ -153,12 +197,31 @@ function Message({ m, live }: { m: ChatMessage; live: boolean }) {
       {m.content ? (
         <div className="prose prose-sm prose-slate max-w-none">
           <Markdown>{m.content}</Markdown>
+          <CopyButton content={m.content} />
         </div>
       ) : (
         live && <p className="text-slate-400">Thinking…</p>
       )}
       {m.error && <p className="mt-2 text-red-600">{m.error}</p>}
       {m.incomplete && !m.error && <p className="mt-2 text-xs text-slate-400">Stopped.</p>}
-    </div>
+      </div>
+  )
+}
+
+function CopyButton({ content }: { content: string }) {
+  const [copied, setCopied] = useState(false)
+
+  return (
+    <button
+      className="mt-2 text-xs font-medium text-slate-400 transition-colors hover:text-indigo-600"
+      onClick={() => {
+        void navigator.clipboard.writeText(content).then(() => {
+          setCopied(true)
+          window.setTimeout(() => setCopied(false), 1500)
+        })
+      }}
+    >
+      {copied ? 'Copied' : 'Copy'}
+    </button>
   )
 }

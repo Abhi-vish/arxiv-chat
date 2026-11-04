@@ -92,6 +92,7 @@ export default function App() {
           <Chat
             key={paper.cache_key}
             cacheKey={paper.cache_key}
+            paper={paper}
             selection={selection}
             onClearSelection={() => setSelection(null)}
           />
